@@ -4,6 +4,7 @@ from langchain_community.vectorstores import Chroma
 from langchain_community.embeddings import OllamaEmbeddings
 from langchain_community.llms import Ollama
 from langchain.chains import RetrievalQA
+from langchain_core.prompts import PromptTemplate
 from itertools import batched
 import uuid
 
@@ -62,6 +63,27 @@ for docs_with_ids in batched(unique_documents_ids.items(), 10):
 print("Vector database filled with embeddings")
 
 ollama = Ollama(base_url=ollama_url, model="mistral")
-qachain=RetrievalQA.from_chain_type(ollama, retriever=vectorstore.as_retriever())
-answer=qachain.invoke({"query": "how do you compute SA for equity asset class?"})
+
+
+prompt_template = """[INST] Use the following pieces of context to answer the question at the end. 
+If you don't know the answer, just say that you don't know, don't try to make up an answer.
+
+{context}
+
+Question: {question}
+[/INST]
+"""
+prompt = PromptTemplate(
+    template=prompt_template, input_variables=["context", "question"]
+)
+
+qachain = RetrievalQA.from_chain_type(
+    ollama,
+    retriever=vectorstore.as_retriever(search_kwargs={'k': 4}),
+    chain_type="stuff", chain_type_kwargs={"prompt": prompt},
+    return_source_documents=True
+)
+answer = qachain.invoke(
+    {"query": "how do you compute SA for equity asset class?"}
+)
 print(answer)

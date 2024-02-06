@@ -23,7 +23,11 @@ ollama_url="http://localhost:11434"
 
 print("Loading " + filePath)
 loader = PyPDFLoader(filePath)
-text_splitter=RecursiveCharacterTextSplitter(chunk_size=500, chunk_overlap=0)
+text_splitter = RecursiveCharacterTextSplitter(
+    chunk_size=500, chunk_overlap=50,
+    separators=["\n\n", r"(?<=[.?!])\s+", "\n", " ", ""], is_separator_regex=True,
+    add_start_index=True
+)
 documents = loader.load_and_split(text_splitter=text_splitter)
 print("Loaded " + str(len(documents)) + " chunks from PDF " + filePath)
 
@@ -36,7 +40,7 @@ for doc, id in zip(documents, ids):
 
 print("Found " + str(len(unique_documents_ids)) + " unique chunks")
 
-oembed = OllamaEmbeddings(base_url=ollama_url, model="mistral")
+oembed = OllamaEmbeddings(base_url=ollama_url, model="mistral", embed_instruction="", query_instruction="")
 vectorstore = Chroma(embedding_function=oembed, persist_directory="chroma")
 
 total_chunks = len(unique_documents_ids)
@@ -67,7 +71,7 @@ ollama = Ollama(base_url=ollama_url, model="mistral")
 
 prompt_template = """[INST] Use the following pieces of context to answer the question at the end. 
 If you don't know the answer, just say that you don't know, don't try to make up an answer.
-
+Context:
 {context}
 
 Question: {question}
@@ -79,11 +83,11 @@ prompt = PromptTemplate(
 
 qachain = RetrievalQA.from_chain_type(
     ollama,
-    retriever=vectorstore.as_retriever(search_kwargs={'k': 4}),
+    retriever=vectorstore.as_retriever(search_kwargs={'k': 10}),
     chain_type="stuff", chain_type_kwargs={"prompt": prompt},
     return_source_documents=True
 )
 answer = qachain.invoke(
-    {"query": "how do you compute SA for equity asset class?"}
+    {"query": "how do you compute the Standard Approach for equity asset class?"}
 )
 print(answer)

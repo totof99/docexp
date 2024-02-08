@@ -90,4 +90,16 @@ qachain = RetrievalQA.from_chain_type(
 answer = qachain.invoke(
     {"query": "how do you compute the Standard Approach for equity asset class?"}
 )
-print(answer)
+
+
+print(f"Question: {answer["query"]}")
+print()
+print("Answer: ")
+print(answer["result"])
+print()
+print("Source: ")
+for source in answer["source_documents"]:
+    print(source.metadata["source"])
+    print(source.metadata["page"])
+    print(source.page_content)
+    print()
